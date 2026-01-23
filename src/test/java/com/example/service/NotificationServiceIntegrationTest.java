@@ -7,12 +7,12 @@ import com.icegreen.greenmail.util.ServerSetup;
 import jakarta.mail.BodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @EmbeddedKafka(partitions = 1, ports = 9092)
-@DirtiesContext
 class NotificationServiceIntegrationTest {
 
     private static final int GREENMAIL_PORT = 3025;
@@ -49,6 +48,15 @@ class NotificationServiceIntegrationTest {
 
         registry.add("spring.mail.default-encoding", () -> "UTF-8");
         registry.add("spring.mail.properties.mail.mime.charset", () -> "UTF-8");
+    }
+
+    @BeforeEach
+    void setUp() {
+        try {
+            greenMail.purgeEmailFromAllMailboxes();
+        } catch (Exception e) {
+            System.err.println("Warning: Failed to purge mailboxes: " + e.getMessage());
+        }
     }
 
     @Test

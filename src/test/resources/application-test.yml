@@ -1,20 +1,28 @@
 spring:
   kafka:
+    bootstrap-servers: localhost:9092
     consumer:
       auto-offset-reset: earliest
-      group-id: test-group
+      group-id: notification-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
         spring.json.trusted.packages: "*"
+    listener:
+      missing-topics-fatal: false
 
   mail:
     host: localhost
-    port: ${greenmail.smtp.port}
+    port: 3025
+    username: test
+    password: test
     properties:
       mail:
         smtp:
           auth: false
           starttls:
             enable: false
+        debug: true
 
   autoconfigure:
     exclude:
@@ -22,5 +30,6 @@ spring:
 
 logging:
   level:
-    org.springframework.kafka: WARN
+    org.springframework.kafka: DEBUG
     com.example: DEBUG
+    org.springframework.mail: DEBUG

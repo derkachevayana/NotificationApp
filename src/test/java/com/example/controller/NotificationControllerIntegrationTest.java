@@ -5,6 +5,7 @@ import com.icegreen.greenmail.junit5.GreenMailExtension;
 import com.icegreen.greenmail.util.GreenMailUtil;
 import com.icegreen.greenmail.util.ServerSetup;
 import jakarta.mail.internet.MimeMessage;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,6 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.annotation.DirtiesContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -24,7 +24,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @EmbeddedKafka(partitions = 1, ports = 9092)
-@DirtiesContext
 class NotificationControllerIntegrationTest {
 
     private static final int GREENMAIL_PORT = 3025;
@@ -41,12 +40,20 @@ class NotificationControllerIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.kafka.bootstrap-servers", () -> "localhost:9092");
 
         registry.add("spring.mail.host", () -> "localhost");
         registry.add("spring.mail.port", () -> GREENMAIL_PORT);
         registry.add("spring.mail.properties.mail.smtp.auth", () -> "false");
         registry.add("spring.mail.properties.mail.smtp.starttls.enable", () -> "false");
+    }
+
+    @BeforeEach
+    void setUp() {
+        try {
+            greenMail.purgeEmailFromAllMailboxes();
+        } catch (Exception e) {
+            System.err.println("Warning: Failed to purge mailboxes: " + e.getMessage());
+        }
     }
 
     @Test

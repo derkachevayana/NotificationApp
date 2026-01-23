@@ -1,5 +1,7 @@
 package com.example.kafka;
 
+import com.example.dto.UserEvent;
+import com.example.dto.UserEventType;
 import com.icegreen.greenmail.configuration.GreenMailConfiguration;
 import com.icegreen.greenmail.junit5.GreenMailExtension;
 import com.icegreen.greenmail.util.GreenMailUtil;
@@ -65,12 +67,12 @@ class NotificationKafkaIntegrationTest {
         String userName = "Kafka User";
         long timestamp = System.currentTimeMillis();
 
-        Map<String, Object> event = Map.of(
-                "eventType", "USER_CREATED",
-                "email", email,
-                "userId", 123L,
-                "userName", userName,
-                "timestamp", timestamp
+        UserEvent event = new UserEvent(
+                UserEventType.USER_CREATED,
+                email,
+                123L,
+                userName,
+                timestamp
         );
 
         String eventJson = objectMapper.writeValueAsString(event);
@@ -95,12 +97,12 @@ class NotificationKafkaIntegrationTest {
         String email = "delete-test@example.com";
         String userName = "Delete User";
 
-        Map<String, Object> event = Map.of(
-                "eventType", "USER_DELETED",
-                "email", email,
-                "userId", 456L,
-                "userName", userName,
-                "timestamp", System.currentTimeMillis()
+        UserEvent event = new UserEvent(
+                UserEventType.USER_DELETED,
+                email,
+                456L,
+                userName,
+                System.currentTimeMillis()
         );
 
         String eventJson = objectMapper.writeValueAsString(event);
@@ -122,15 +124,16 @@ class NotificationKafkaIntegrationTest {
 
     @Test
     void shouldIgnoreUnknownEventTypes() throws Exception {
-        Map<String, Object> event = Map.of(
-                "eventType", "UNKNOWN_EVENT",
-                "email", "unknown@example.com",
-                "timestamp", System.currentTimeMillis()
-        );
 
-        String eventJson = objectMapper.writeValueAsString(event);
+        String invalidEventJson = """
+                {
+                    "eventType": "INVALID_TYPE",
+                    "email": "unknown@example.com",
+                    "timestamp": %d
+                }
+                """.formatted(System.currentTimeMillis());
 
-        kafkaTemplate.send("user-events", "unknown@example.com", eventJson);
+        kafkaTemplate.send("user-events", "unknown@example.com", invalidEventJson);
 
         Thread.sleep(3000);
         assertThat(greenMail.getReceivedMessages()).isEmpty();

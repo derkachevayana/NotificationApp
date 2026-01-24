@@ -20,6 +20,7 @@ public class NotificationServiceApplication {
             🚀 Notification Service запущен успешно!
             ==========================================
             🔗 Local: http://localhost:8082
+            📚 Swagger UI:   http://localhost:8082/swagger-ui.html
             📧 SMTP: localhost:1025 (MailDev)
             📨 Web UI: http://localhost:1080
             📊 Kafka: localhost:9092

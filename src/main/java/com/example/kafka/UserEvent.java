@@ -1,4 +1,4 @@
-package com.example.dto;
+package com.example.kafka;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

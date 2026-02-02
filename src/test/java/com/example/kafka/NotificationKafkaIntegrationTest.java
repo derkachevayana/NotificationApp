@@ -1,7 +1,5 @@
 package com.example.kafka;
 
-import com.example.dto.UserEvent;
-import com.example.dto.UserEventType;
 import com.icegreen.greenmail.configuration.GreenMailConfiguration;
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.GreenMailUtil;

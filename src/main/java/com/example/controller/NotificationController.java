@@ -15,6 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
@@ -22,6 +26,32 @@ import org.springframework.web.bind.annotation.*;
 public class NotificationController {
 
     private final NotificationService notificationService;
+
+    @Operation(
+            summary = "Получить статус сервиса уведомлений",
+            description = "Возвращает информацию о сервисе уведомлений"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Информация о сервисе получена",
+                    content = @Content(mediaType = "application/json")
+            )
+    })
+    @GetMapping
+    public Map<String, Object> getServiceInfo() {
+        return Map.of(
+                "service", "notification-service",
+                "status", "RUNNING",
+                "version", "1.0.0",
+                "timestamp", LocalDateTime.now().toString(),
+                "description", "Сервис для отправки email уведомлений",
+                "endpoints", List.of(
+                        Map.of("method", "POST", "path", "/api/notifications/send",
+                                "description", "Отправить email уведомление")
+                )
+        );
+    }
 
     @Operation(
             summary = "Отправить email",

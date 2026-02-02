@@ -1,7 +1,16 @@
-server:
-  port: 8082
-
 spring:
+  config:
+    import: optional:configserver:http://localhost:8888
+
+  application:
+    name: notification-service
+
+  cloud:
+    config:
+      uri: http://localhost:8888
+      fail-fast: true
+      enabled: true
+
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
@@ -34,6 +43,24 @@ spring:
           starttls:
             enable: false
     default-encoding: UTF-8
+
+server:
+  port: 8082
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+    healthcheck:
+      enabled: true
+  instance:
+    hostname: localhost
+    prefer-ip-address: false
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
 
 logging:
   level:

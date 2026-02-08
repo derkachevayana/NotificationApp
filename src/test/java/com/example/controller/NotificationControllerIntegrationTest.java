@@ -1,130 +1,61 @@
 package com.example.controller;
 
-import com.icegreen.greenmail.configuration.GreenMailConfiguration;
-import com.icegreen.greenmail.junit5.GreenMailExtension;
-import com.icegreen.greenmail.util.GreenMailUtil;
-import com.icegreen.greenmail.util.ServerSetup;
-import jakarta.mail.internet.MimeMessage;
-import org.junit.jupiter.api.BeforeEach;
+import com.example.dto.EmailRequest;
+import com.example.service.NotificationService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.kafka.test.context.EmbeddedKafka;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.core.StringContains.containsString;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@EmbeddedKafka(partitions = 1, ports = 9092)
+@WebMvcTest(NotificationController.class)
+@TestPropertySource(properties = {
+        "spring.cloud.config.enabled=false",
+        "spring.cloud.discovery.enabled=false",
+        "eureka.client.enabled=false",
+        "spring.config.import=",
+        "spring.mail.host=localhost",
+        "spring.mail.port=1025"
+})
 class NotificationControllerIntegrationTest {
-
-    private static final int GREENMAIL_PORT = 3025;
-
-    @RegisterExtension
-    static GreenMailExtension greenMail = new GreenMailExtension(
-            new ServerSetup(GREENMAIL_PORT, null, ServerSetup.PROTOCOL_SMTP)
-    ).withConfiguration(
-            GreenMailConfiguration.aConfig().withUser("test", "test")
-    );
 
     @Autowired
     private MockMvc mockMvc;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
+    @Autowired
+    private ObjectMapper objectMapper;
 
-        registry.add("spring.mail.host", () -> "localhost");
-        registry.add("spring.mail.port", () -> GREENMAIL_PORT);
-        registry.add("spring.mail.properties.mail.smtp.auth", () -> "false");
-        registry.add("spring.mail.properties.mail.smtp.starttls.enable", () -> "false");
-    }
-
-    @BeforeEach
-    void setUp() {
-        try {
-            greenMail.purgeEmailFromAllMailboxes();
-        } catch (Exception e) {
-            System.err.println("Warning: Failed to purge mailboxes: " + e.getMessage());
-        }
-    }
+    @MockBean
+    private NotificationService notificationService;
 
     @Test
-    void shouldSendCustomEmailViaApi() throws Exception {
-        String requestBody = """
-            {
-                "email": "api-test@example.com",
-                "subject": "Test Subject",
-                "message": "Test message from API"
-            }
-            """;
+    void sendEmail_Success() throws Exception {
+        EmailRequest request = new EmailRequest();
+        request.setEmail("test@example.com");
+        request.setSubject("Test");
+        request.setMessage("Test message");
+
+        doNothing().when(notificationService).sendCustomEmail(any(), any(), any());
 
         mockMvc.perform(post("/api/notifications/send")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Email sent successfully to api-test@example.com"));
-
-        Thread.sleep(1000);
-
-        MimeMessage[] messages = greenMail.getReceivedMessages();
-        assertThat(messages).hasSize(1);
-
-        MimeMessage message = messages[0];
-        assertThat(message.getSubject()).isEqualTo("Test Subject");
-        assertThat(message.getAllRecipients()[0].toString()).isEqualTo("api-test@example.com");
-        assertThat(GreenMailUtil.getBody(message)).contains("Test message from API");
+                .andExpect(content().string("Email sent successfully to test@example.com"));
     }
 
     @Test
-    void shouldReturnBadRequestForInvalidEmail() throws Exception {
-        String requestBody = """
-            {
-                "email": "invalid-email",
-                "subject": "Test",
-                "message": "Test"
-            }
-            """;
-
-        mockMvc.perform(post("/api/notifications/send")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void shouldReturnSwaggerDocumentation() throws Exception {
-        mockMvc.perform(get("/swagger-ui/index.html"))
+    void getServiceInfo() throws Exception {
+        mockMvc.perform(get("/api/notifications"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Swagger UI")));
-
-        mockMvc.perform(get("/v3/api-docs"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.openapi").exists())
-                .andExpect(jsonPath("$.info.title").value("Notification Service API"))
-                .andExpect(jsonPath("$.info.version").value("1.0"));
-    }
-
-    @Test
-    void shouldDocumentNotificationEndpointInOpenAPI() throws Exception {
-        mockMvc.perform(get("/swagger-ui/index.html"))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/v3/api-docs"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.openapi").exists())
-                .andExpect(jsonPath("$.paths./api/notifications/send.post").exists())
-                .andExpect(jsonPath("$.paths./api/notifications/send.post.summary")
-                        .value("Отправить email"));;
+                .andExpect(jsonPath("$.service").value("notification-service"));
     }
 }

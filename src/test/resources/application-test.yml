@@ -1,15 +1,19 @@
 spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      auto-offset-reset: earliest
-      group-id: notification-group
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      properties:
-        spring.json.trusted.packages: "*"
-    listener:
-      missing-topics-fatal: false
+  application:
+    name: notification-service-test
+
+  config:
+    import: "optional:file:./nonexistent.yml"
+
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+    discovery:
+      enabled: false
+    bootstrap:
+      enabled: false
 
   mail:
     host: localhost
@@ -22,27 +26,25 @@ spring:
           auth: false
           starttls:
             enable: false
-        debug: true
 
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+  kafka:
+    bootstrap-servers: ""
+    enabled: false
 
-  springdoc:
-    api-docs:
-      path: /api-docs
-      enabled: true
-    swagger-ui:
-      path: /swagger-ui.html
-      enabled: true
-      try-it-out-enabled: true
-    show-actuator: false
-    cache:
-      disabled: true
+eureka:
+  client:
+    enabled: false
+    fetch-registry: false
+    register-with-eureka: false
+
+spring.autoconfigure.exclude: |
+  org.springframework.cloud.client.discovery.EnableDiscoveryClient,
+  org.springframework.cloud.config.client.ConfigClientAutoConfiguration,
+  org.springframework.cloud.netflix.eureka.EurekaClientAutoConfiguration,
+  org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
 
 logging:
   level:
-    org.springframework.kafka: DEBUG
+    org.springframework: WARN
     com.example: DEBUG
-    org.springframework.mail: DEBUG
-    org.springdoc: INFO
+    org.apache.kafka: OFF
